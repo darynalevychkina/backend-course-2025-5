@@ -27,6 +27,11 @@ const sendImage = (res, buf) => {
   res.writeHead(200, { 'Content-Type': 'image/jpeg' });
   res.end(buf);
 };
+const readBody = async (req) => {
+  const chunks = [];
+  for await (const ch of req) chunks.push(ch);
+  return Buffer.concat(chunks);
+};
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -40,6 +45,13 @@ const server = http.createServer(async (req, res) => {
       } catch {
         return sendText(res, 404, 'Not Found');
       }
+    }
+
+    if (req.method === 'PUT') {
+      const body = await readBody(req);
+      if (!body || body.length === 0) return sendText(res, 400, 'Empty body');
+      await fs.writeFile(fileForCode(code), body);
+      return sendText(res, 201, 'Created');
     }
 
     res.setHeader('Allow', 'GET, PUT, DELETE');
