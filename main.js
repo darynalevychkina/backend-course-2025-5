@@ -2,6 +2,7 @@ import http from 'http';
 import { program } from 'commander';
 import { promises as fs } from 'fs';
 import path from 'path';
+import superagent from 'superagent';
 
 program
   .requiredOption('-h, --host <host>', 'server address')
@@ -14,6 +15,7 @@ program
   .parse(process.argv);
 
 const { host, port, cache } = program.opts();
+
 await fs.mkdir(cache, { recursive: true });
 
 const isHttpStatusCode = (s) => /^\d{3}$/.test(s);
@@ -23,8 +25,8 @@ const sendText = (res, code, msg) => {
   res.writeHead(code, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(msg);
 };
-const sendImage = (res, buf) => {
-  res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+const sendImage = (res, buf, code = 200) => {
+  res.writeHead(code, { 'Content-Type': 'image/jpeg' });
   res.end(buf);
 };
 const readBody = async (req) => {
@@ -33,17 +35,37 @@ const readBody = async (req) => {
   return Buffer.concat(chunks);
 };
 
+const fetchFromHttpCat = async (code) => {
+  const url = `https://http.cat/${code}.jpg`;
+  try {
+    const resp = await superagent
+      .get(url)
+      .buffer(true)        
+      .redirects(2)        
+      .set('User-Agent', 'lab-proxy/1.0');
+    return resp.body;      
+  } catch {
+    return null;
+  }
+};
+
 const server = http.createServer(async (req, res) => {
   try {
-    const code = req.url.replace(/^\/+/, '');
-    if (!isHttpStatusCode(code)) return sendText(res, 404, 'Not Found');
+    const code = new URL(req.url, `http://${host}:${port}`).pathname.replace(/^\/+/, '');
+    if (!isHttpStatusCode(code)) {
+      res.setHeader('Allow', 'GET, PUT, DELETE');
+      return sendText(res, 404, 'Not Found');
+    }
 
     if (req.method === 'GET') {
       try {
         const img = await fs.readFile(fileForCode(code));
-        return sendImage(res, img);
+        return sendImage(res, img, 200);
       } catch {
-        return sendText(res, 404, 'Not Found');
+        const img = await fetchFromHttpCat(code);
+        if (!img) return sendText(res, 404, 'Not Found');
+        await fs.writeFile(fileForCode(code), img);
+        return sendImage(res, img, 200);
       }
     }
 
