@@ -1,19 +1,18 @@
 {
   "name": "backend-course-2025-5",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Lab Part 1: CLI + HTTP server",
+  "type": "module",
+  "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node main.js -h 127.0.0.1 -p 3000 -c ./cache",
+    "dev": "nodemon --watch main.js --exec \"node main.js -h 127.0.0.1 -p 3000 -c ./cache\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "commander": "^14.0.2",
-    "superagent": "^10.2.3"
+    "commander": "^12.0.0",
+    "superagent": "^10.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.0"
   }
 }
