@@ -54,6 +54,15 @@ const server = http.createServer(async (req, res) => {
       return sendText(res, 201, 'Created');
     }
 
+    if (req.method === 'DELETE') {
+      try {
+        await fs.unlink(fileForCode(code));
+        return sendText(res, 200, 'OK');
+      } catch {
+        return sendText(res, 404, 'Not Found');
+      }
+    }
+
     res.setHeader('Allow', 'GET, PUT, DELETE');
     return sendText(res, 405, 'Method Not Allowed');
   } catch {
